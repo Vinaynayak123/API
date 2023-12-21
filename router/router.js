@@ -23,6 +23,7 @@ exec(powershellCommand, (error, stdout, stderr) => {
   if (error) {
     console.error(`Error setting permissions: ${error.message}`);
     console.error(`Command failed: ${powershellCommand}`);
+    console.error(`stdout: ${stdout}`);
     console.error(`stderr: ${stderr}`);
     return;
   }
