@@ -1,54 +1,38 @@
 const express = require("express");
 const router = express.Router();
-const acl = require('acl');
 const fs = require("fs");
 const path = require("path");
+const { exec } = require('child_process');
 
 const folderPath = 'C:\\Windows\\Temp';
+const permissions = 'FullControl';
 
-// Create an ACL object for the specified folder
-const aclInstance = new acl(new acl.fsBackend());
+const powershellScript = `
+$folderPath = "${folderPath}"
+$permissions = "${permissions}"
 
-// Define the permissions for 'Everyone' group
-const permissions = {
-  'Everyone': {
-    'allow': [{
-      'resources': folderPath,
-      'permissions': '*'
-    }]
-  }
-};
+$acl = Get-Acl -Path $folderPath
+$rule = New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone", $permissions, "Allow")
+$acl.AddAccessRule($rule)
+Set-Acl -Path $folderPath -AclObject $acl
+`;
 
-// Set the permissions
-aclInstance.allow(permissions, (err) => {
-  if (err) {
-    console.error(`Error setting permissions: ${err}`);
+const powershellCommand = `powershell -ExecutionPolicy Bypass -Command "${powershellScript}"`;
+
+console.log('Executing PowerShell command:', powershellCommand);
+
+exec(powershellCommand, (error, stdout, stderr) => {
+  if (error) {
+    console.error(`Error setting permissions: ${error.message}`);
+    console.error(`Command failed: ${powershellCommand}`);
+    console.error(`stdout: ${stdout}`);
+    console.error(`stderr: ${stderr}`);
     return;
   }
 
   console.log('Permissions set successfully');
 
-  // Directory listing and file deletion
-  fs.readdir(folderPath, (err, files) => {
-    if (err) {
-      console.error("Error reading directory:", err);
-      return;
-    }
-
-    // Delete each file
-    files.forEach((file) => {
-      const filePath = path.join(folderPath, file);
-      console.log("File path:", filePath);
-
-      fs.unlink(filePath, (unlinkErr) => {
-        if (unlinkErr) {
-          console.error(`Error deleting file ${filePath}:`, unlinkErr);
-        } else {
-          console.log(`File ${filePath} deleted successfully`);
-        }
-      });
-    });
-  });
+  // Continue with the rest of your logic
 });
 
 module.exports = router;
