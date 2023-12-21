@@ -8,16 +8,25 @@ const folderPath = 'C:\\Windows\\Temp';
 const permissions = 'FullControl';
 
 const powershellScript = `
+$ErrorActionPreference = "Stop"
 $folderPath = "${folderPath}"
 $permissions = "${permissions}"
 
-$acl = Get-Acl -Path $folderPath
-$rule = New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone", $permissions, "Allow")
-$acl.AddAccessRule($rule)
-Set-Acl -Path $folderPath -AclObject $acl
+try {
+    $acl = Get-Acl -Path $folderPath
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone", $permissions, "Allow")
+    $acl.AddAccessRule($rule)
+    Set-Acl -Path $folderPath -AclObject $acl
+}
+catch {
+    $_.Exception.Message | Out-File -Append "C:\\Path\\To\\Your\\Log\\File.txt"
+    exit 1
+}
 `;
 
 const powershellCommand = `powershell -ExecutionPolicy Bypass -Command "${powershellScript}"`;
+
+console.log('Executing PowerShell command:', powershellCommand);
 
 exec(powershellCommand, (error, stdout, stderr) => {
   if (error) {
@@ -30,27 +39,7 @@ exec(powershellCommand, (error, stdout, stderr) => {
 
   console.log('Permissions set successfully');
 
-  // Directory listing and file deletion
-  fs.readdir(folderPath, (err, files) => {
-    if (err) {
-      console.error("Error reading directory:", err);
-      return;
-    }
-
-    // Delete each file
-    files.forEach((file) => {
-      const filePath = path.join(folderPath, file);
-      console.log("File path:", filePath);
-
-      fs.unlink(filePath, (unlinkErr) => {
-        if (unlinkErr) {
-          console.error(`Error deleting file ${filePath}:`, unlinkErr);
-        } else {
-          console.log(`File ${filePath} deleted successfully`);
-        }
-      });
-    });
-  });
+  // Continue with the rest of your logic
 });
 
 module.exports = router;
